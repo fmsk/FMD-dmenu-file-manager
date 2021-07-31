@@ -1,0 +1,195 @@
+#!/bin/bash  
+
+DMLINES=64
+DMFONT=terminus:bold:size=10
+
+addFilesList () {
+  
+  local result="${1}"
+  local path="${2}"
+  for f in "${path}"/*
+	do
+		tmp=""
+		if [[ -d $f ]]; then
+			tmp="DIR  : "
+		elif [[ -f "${f}" ]]; then
+			tmp="FILE : "
+		else
+			tmp="???? : "
+		fi
+		if [ "$f" = "${path}"/"${3}" ] ; then
+			result="${result}""=>         "
+		fi
+		result="${result}${tmp}${f#${path}/}"$'\n'
+		
+	done
+	
+	for f in "${path}"/.*
+	do
+		tmp=""
+		if [[ -d $f ]]; then
+			tmp="DIR  : "
+		elif [[ -f "${f}" ]]; then
+			tmp="FILE : "
+		else
+			tmp="???? : "
+		fi
+		if [ "$f" = "${path}"/"${3}" ] ; then
+			result="${result}""=>         "
+		fi
+		if [ "$f" != "${path}"/.. ] && [ "$f" != "${path}"/. ] ; then
+			result="${result}${tmp}${f#${path}/}"$'\n'
+		fi
+		
+	done
+	echo "$result"
+}
+
+if [ $# == 0 ] ; then
+{
+
+	fmdPath="$HOME"
+	cd $fmdPath
+	
+	fmdList=".."$'\n'
+	
+	fmdList=$( addFilesList "$fmdList" "$fmdPath" )
+	
+	fmdSelection=$( echo "$fmdList" | dmenu -m dmenuon -fn "$DMFONT" -nb '#222222' -sf '#222222' -sb '#dfdfdf' -nf '#dfdfdf' -l "$DMLINES" )
+
+	if [[ "${fmdSelection}" = $'\0' ]]; then
+	{
+		exit
+	}
+	elif [[ "${fmdSelection}" = ".." ]]; then
+	{
+		fmdPath="${fmdPath%/*}"
+		FMD $fmdPath "FOLDER"	
+	}
+	elif [[ -d "${fmdPath}/${fmdSelection#DIR  : }" ]]; then
+	{
+		fmdPath="${fmdPath}/${fmdSelection#DIR  : }"
+		FMD $fmdPath
+	}
+	elif [[ -f "${fmdPath}/${fmdSelection#FILE : }" ]]; then
+	{
+		fmdPath="${fmdPath}/${fmdSelection#FILE : }"
+		FMD $fmdPath
+	}
+	else
+	{
+		exit
+	}
+	fi
+}
+
+elif [ $# == 1 ] ; then
+{
+	item="${1##*/}"
+	fmdPath="${1%/*}" 
+	
+	fmdList="${item} -> OPEN"$'\n'
+	align=""
+	for ((i=0; i < ${#item}; i++)); do
+    align="${align}"" "
+	done
+	
+	fmdList="${fmdList}${align} ├> COPY"$'\n'
+	fmdList="${fmdList}${align} ├> MOVE"$'\n'
+	fmdList="${fmdList}${align} ├> RENAME"$'\n'
+	fmdList="${fmdList}${align} ├> DELETE"$'\n'
+	fmdList="${fmdList}${align} └> CANCEL"$'\n'
+
+	fmdList=$( addFilesList "$fmdList" "$fmdPath" "$item" )
+
+	fmdSelection=$(echo "$fmdList" | dmenu -m dmenuon -fn "$DMFONT" -nb '#222222' -sf '#222222' -sb '#dfdfdf' -nf '#dfdfdf' -l  "$DMLINES" )
+	
+	if [[ "${fmdSelection}" = $'\0' ]]; then
+	{
+		exit
+	}
+	elif [ "$fmdSelection" = "${item} -> OPEN" ] ; then
+	{
+		if [[ -d "${fmdPath}"/"${item}" ]]; then
+		{
+			fmdPath="${fmdPath}"/"${item}"
+			FMD $fmdPath "FOLDER"
+		}
+		elif [[ -f "${f}" ]]; then
+		{
+			echo "TO DO FILE OPEN"
+		}
+		fi
+	}
+	elif [ "$fmdSelection" = "${align} ├> RENAME" ]; then
+	{
+		fmdSelection=$(echo "Enter new name for ${item}" | dmenu -m dmenuon -fn "$DMFONT" -nb '#222222' -sf '#222222' -sb '#dfdfdf' -nf '#dfdfdf' -l  "$DMLINES" )
+		mv $fmdPath/$item $fmdPath/$fmdSelection
+	}
+	elif [ "$fmdSelection" = "${align} ├> DELETE" ]; then
+	{
+		mkdir -p $HOME/.config/FMD/trash
+		mv $fmdPath/$item $HOME/.config/FMD/trash
+	}
+	elif [ "$fmdSelection" = "${align} ├> COPY" ]; then
+	{
+		echo "TO DO COPY"
+	}
+	else
+	{
+		exit
+	}
+	fi
+}
+
+elif [ $# == 2 ] ; then
+{
+	if [ "$2" = "FOLDER" ] ; then
+	{
+		fmdPath="${1}" 
+	}	
+	fi
+	
+	fmdList=".."$'\n'
+	
+	fmdList=$( addFilesList "$fmdList" "$fmdPath" )
+	
+	fmdSelection=$(echo "$fmdList" | dmenu -m dmenuon -fn "$DMFONT" -nb '#222222' -sf '#222222' -sb '#dfdfdf' -nf '#dfdfdf' -l  "$DMLINES" )
+	
+	if [[ "${fmdSelection}" = $'\0' ]]; then
+	{
+		exit
+	}
+	elif [[ "${fmdSelection}" = ".." ]]; then
+	{	
+		
+		if [[ "${fmdPath}" == "/home" ]]; then
+		{
+			FMD "/home/" "FOLDER" 
+		}
+		else
+		{
+			fmdPath="${fmdPath%/*}"
+			FMD $fmdPath "FOLDER"	
+		}
+		fi
+	}
+	elif [[ -d "${fmdPath}/${fmdSelection#DIR  : }" ]]; then
+		fmdPath="${fmdPath}/${fmdSelection#DIR  : }"
+		FMD $fmdPath
+	elif [[ -f "${fmdPath}/${fmdSelection#FILE : }" ]]; then
+		echo "TO DO FILE OPEN"
+	
+	else
+	{
+		exit
+	}
+	fi
+	
+}
+fi
+
+
+
+
+
